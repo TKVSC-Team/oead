@@ -17,7 +17,6 @@
  * along with oead.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <absl/algorithm/container.h>
 #include <absl/strings/escaping.h>
 #include <absl/strings/str_format.h>
 
@@ -83,20 +82,34 @@ static bool ShouldUseInlineYamlStyle(const Byml& container) {
                           Byml::Type::Hash32, Byml::Type::Hash64);
   };
   switch (container.GetType()) {
-  case Byml::Type::Array:
-    return container.GetArray().size() <= 10 && absl::c_all_of(container.GetArray(), is_simple);
-  case Byml::Type::Dictionary:
-    return container.GetDictionary().size() <= 10 &&
-           absl::c_all_of(container.GetDictionary(),
-                          [&](const auto& p) { return is_simple(p.second); });
-  case Byml::Type::Hash32:
-    return container.GetHash32().size() <= 10 &&
-           absl::c_all_of(container.GetHash32(),
-                          [&](const auto& p) { return is_simple(p.second); });
-  case Byml::Type::Hash64:
-    return container.GetHash64().size() <= 10 &&
-           absl::c_all_of(container.GetHash64(),
-                          [&](const auto& p) { return is_simple(p.second); });
+  case Byml::Type::Array: {
+    if (container.GetArray().size() > 10) return false;
+    for (const auto& item : container.GetArray()) {
+      if (!is_simple(item)) return false;
+    }
+    return true;
+  }
+  case Byml::Type::Dictionary: {
+    if (container.GetDictionary().size() > 10) return false;
+    for (const auto& p : container.GetDictionary()) {
+      if (!is_simple(p.second)) return false;
+    }
+    return true;
+  }
+  case Byml::Type::Hash32: {
+    if (container.GetHash32().size() > 10) return false;
+    for (const auto& p : container.GetHash32()) {
+      if (!is_simple(p.second)) return false;
+    }
+    return true;
+  }
+  case Byml::Type::Hash64: {
+    if (container.GetHash64().size() > 10) return false;
+    for (const auto& p : container.GetHash64()) {
+      if (!is_simple(p.second)) return false;
+    }
+    return true;
+  }
   default:
     return false;
   }
