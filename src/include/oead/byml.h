@@ -82,7 +82,7 @@ public:
   Byml() = default;
   Byml(const Byml& other);
   Byml(Byml&& other) noexcept;
-  template <typename T, std::enable_if_t<std::is_constructible_v<Value, T&&>>* = nullptr>
+  template <typename T, std::enable_if_t<!std::is_same_v<std::decay_t<T>, Byml> && std::is_constructible_v<Value, T&&>>* = nullptr>
   Byml(T&& value) : m_value{std::forward<T>(value)} {}
   Byml& operator=(const Byml& other);
   Byml& operator=(Byml&& other) noexcept;
