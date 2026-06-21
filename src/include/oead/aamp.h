@@ -130,8 +130,8 @@ public:
   Parameter() = default;
   Parameter(const Parameter& other);
   Parameter(Parameter&& other) noexcept;
-  template <typename T, std::enable_if_t<std::is_constructible_v<Value, T>>* = nullptr>
-  Parameter(T value) : m_value{std::move(value)} {}
+  template <typename T, std::enable_if_t<std::is_constructible_v<Value, T&&>>* = nullptr>
+  Parameter(T&& value) : m_value{std::forward<T>(value)} {}
   Parameter(F32 value) : m_value{static_cast<f32>(value)} {}
   Parameter& operator=(const Parameter& other);
   Parameter& operator=(Parameter&& other) noexcept;
