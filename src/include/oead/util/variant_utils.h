@@ -105,10 +105,18 @@ struct Variant {
             std::enable_if_t<IsAnyOfType<std::decay_t<T>, Types...>() ||
                              IsAnyOfType<std::unique_ptr<std::decay_t<T>>, Types...>()>* = nullptr>
   Variant(T&& value) noexcept {
-    if constexpr (IsAnyOfType<std::unique_ptr<std::decay_t<T>>, Types...>())
-      v = std::make_unique<T>(std::move(value));
-    else
+    if constexpr (IsAnyOfType<std::unique_ptr<std::decay_t<T>>, Types...>()) {
+      using RealT = std::decay_t<T>;
+      if constexpr (IsMap<RealT>::value || IsVector<RealT>::value) {
+        auto ptr = std::make_unique<RealT>();
+        ptr->swap(value);
+        v = std::move(ptr);
+      } else {
+        v = std::make_unique<RealT>(std::move(value));
+      }
+    } else {
       v = std::move(value);
+    }
   }
 
   Variant& operator=(const Variant& other) {
