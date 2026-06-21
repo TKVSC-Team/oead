@@ -40,6 +40,12 @@ class CMakeBuild(build_ext):
         build_args = [f'-j{os.cpu_count()}', '--config', cfg]
 
         generator = os.getenv('CMAKE_GENERATOR', '')
+        if not generator and platform.system() == "Windows":
+            import shutil
+            if shutil.which("ninja") is not None:
+                os.environ["CMAKE_GENERATOR"] = "Ninja"
+                generator = "Ninja"
+
         is_multi_config = platform.system() == "Windows" and not any(x in generator for x in ["Ninja", "MinGW", "NMake", "Makefiles"])
 
         if platform.system() == "Windows":
