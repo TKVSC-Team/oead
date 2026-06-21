@@ -133,8 +133,8 @@ public:
   template <typename T, std::enable_if_t<std::is_constructible_v<Value, T>>* = nullptr>
   Parameter(T value) : m_value{std::move(value)} {}
   Parameter(F32 value) : m_value{static_cast<f32>(value)} {}
-  Parameter& operator=(const Parameter& other) = default;
-  Parameter& operator=(Parameter&& other) noexcept = default;
+  Parameter& operator=(const Parameter& other);
+  Parameter& operator=(Parameter&& other) noexcept;
 
   OEAD_DEFINE_FIELDS(Parameter, m_value);
 
@@ -223,3 +223,6 @@ struct ParameterIO : ParameterList {
 };
 
 }  // namespace oead::aamp
+
+inline oead::aamp::Parameter& oead::aamp::Parameter::operator=(const Parameter& other) = default;
+inline oead::aamp::Parameter& oead::aamp::Parameter::operator=(Parameter&& other) noexcept = default;

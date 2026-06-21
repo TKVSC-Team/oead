@@ -84,8 +84,8 @@ public:
   Byml(Byml&& other) noexcept { *this = std::move(other); }
   template <typename T, std::enable_if_t<std::is_constructible_v<Value, T>>* = nullptr>
   Byml(T value) : m_value{std::move(value)} {}
-  Byml& operator=(const Byml& other) = default;
-  Byml& operator=(Byml&& other) noexcept = default;
+  Byml& operator=(const Byml& other);
+  Byml& operator=(Byml&& other) noexcept;
 
   OEAD_DEFINE_FIELDS(Byml, m_value);
 
@@ -206,3 +206,6 @@ private:
 };
 
 }  // namespace oead
+
+inline oead::Byml& oead::Byml::operator=(const Byml& other) = default;
+inline oead::Byml& oead::Byml::operator=(Byml&& other) noexcept = default;

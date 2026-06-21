@@ -194,6 +194,9 @@ struct FixedSafeString {
   FixedSafeString() = default;
   FixedSafeString(std::string_view str) { *this = str; }
 
+  FixedSafeString(const FixedSafeString& other) { *this = other; }
+  FixedSafeString(FixedSafeString&& other) noexcept = default;
+
   auto& operator=(const FixedSafeString& other) {
     length = other.length;
     data = other.data;
