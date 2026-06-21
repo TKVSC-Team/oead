@@ -33,16 +33,23 @@ class CMakeBuild(build_ext):
 
         extdir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
         cmake_args = ['-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir,
-                      '-DPYTHON_EXECUTABLE=' + sys.executable]
+                      '-DPYTHON_EXECUTABLE=' + sys.executable,
+                      '-DCMAKE_POLICY_VERSION_MINIMUM=3.5']
 
         cfg = 'Debug' if debug else 'Release'
         build_args = [f'-j{os.cpu_count()}', '--config', cfg]
 
+        generator = os.getenv('CMAKE_GENERATOR', '')
+        is_multi_config = platform.system() == "Windows" and not any(x in generator for x in ["Ninja", "MinGW", "NMake", "Makefiles"])
+
         if platform.system() == "Windows":
             cmake_args += ['-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{}={}'.format(cfg.upper(), extdir)]
-            if sys.maxsize > 2**32:
-                cmake_args += ['-A', 'x64']
-            build_args += ['--', '/m']
+            if is_multi_config:
+                if sys.maxsize > 2**32:
+                    cmake_args += ['-A', 'x64']
+                build_args += ['--', '/m']
+            else:
+                cmake_args += ['-DCMAKE_BUILD_TYPE=' + cfg]
         else:
             cmake_args += ['-DCMAKE_BUILD_TYPE=' + cfg]
 

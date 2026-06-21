@@ -126,11 +126,129 @@ static Value MapCastValue(py::handle handle) {
   return handle.cast<Value>();
 }
 
+template <typename T, typename = void>
+struct has_value_method : std::false_type {};
+
+template <typename T>
+struct has_value_method<T, std::void_t<decltype(std::declval<T&>().value())>> : std::true_type {};
+
+template <typename Iterator>
+decltype(auto) GetIteratorValue(Iterator& it) {
+  if constexpr (has_value_method<Iterator>::value) {
+    return it.value();
+  } else {
+    return it->second;
+  }
+}
+
+template <typename Map, typename holder_type = std::unique_ptr<Map>, typename... Args>
+py::class_<Map, holder_type> OeadBindMap(py::handle scope, const std::string &name, Args &&...args) {
+    using KeyType = typename Map::key_type;
+    using MappedType = typename Map::mapped_type;
+    using KeysView = py::detail::keys_view;
+    using ValuesView = py::detail::values_view;
+    using ItemsView = py::detail::items_view;
+    using Class_ = py::class_<Map, holder_type>;
+
+    auto *tinfo = py::detail::get_type_info(typeid(MappedType));
+    bool local = !tinfo || tinfo->module_local;
+    if (local) {
+        tinfo = py::detail::get_type_info(typeid(KeyType));
+        local = !tinfo || tinfo->module_local;
+    }
+
+    Class_ cl(scope, name.c_str(), py::module_local(local), std::forward<Args>(args)...);
+
+    if (!py::detail::get_type_info(typeid(KeysView))) {
+        py::class_<KeysView> keys_view(scope, "KeysView", py::module_local(local));
+        keys_view.def("__len__", &KeysView::len);
+        keys_view.def("__iter__", &KeysView::iter, py::keep_alive<0, 1>());
+        keys_view.def("__contains__", &KeysView::contains);
+    }
+    if (!py::detail::get_type_info(typeid(ValuesView))) {
+        py::class_<ValuesView> values_view(scope, "ValuesView", py::module_local(local));
+        values_view.def("__len__", &ValuesView::len);
+        values_view.def("__iter__", &ValuesView::iter, py::keep_alive<0, 1>());
+    }
+    if (!py::detail::get_type_info(typeid(ItemsView))) {
+        py::class_<ItemsView> items_view(scope, "ItemsView", py::module_local(local));
+        items_view.def("__len__", &ItemsView::len);
+        items_view.def("__iter__", &ItemsView::iter, py::keep_alive<0, 1>());
+    }
+
+    cl.def(py::init<>());
+
+    py::detail::map_if_insertion_operator<Map, Class_>(cl, name);
+
+    cl.def(
+        "__bool__",
+        [](const Map &m) -> bool { return !m.empty(); },
+        "Check whether the map is nonempty");
+
+    cl.def(
+        "__iter__",
+        [](Map &m) { return py::make_key_iterator(m.begin(), m.end()); },
+        py::keep_alive<0, 1>()
+    );
+
+    cl.def(
+        "keys",
+        [](Map &m) { return std::unique_ptr<KeysView>(new py::detail::KeysViewImpl<Map>(m)); },
+        py::keep_alive<0, 1>()
+    );
+
+    cl.def(
+        "values",
+        [](Map &m) { return std::unique_ptr<ValuesView>(new py::detail::ValuesViewImpl<Map>(m)); },
+        py::keep_alive<0, 1>()
+    );
+
+    cl.def(
+        "items",
+        [](Map &m) { return std::unique_ptr<ItemsView>(new py::detail::ItemsViewImpl<Map>(m)); },
+        py::keep_alive<0, 1>()
+    );
+
+    cl.def(
+        "__getitem__",
+        [](Map &m, const KeyType &k) -> decltype(auto) {
+            auto it = m.find(k);
+            if (it == m.end()) {
+                throw py::key_error();
+            }
+            return GetIteratorValue(it);
+        },
+        py::return_value_policy::reference_internal
+    );
+
+    cl.def("__contains__", [](Map &m, const KeyType &k) -> bool {
+        auto it = m.find(k);
+        return it != m.end();
+    });
+    cl.def("__contains__", [](Map &, const py::object &) -> bool { return false; });
+
+    cl.def("__setitem__", [](Map &m, const KeyType &k, const MappedType &v) {
+        m.insert_or_assign(k, v);
+    });
+
+    cl.def("__delitem__", [](Map &m, const KeyType &k) {
+        auto it = m.find(k);
+        if (it == m.end()) {
+            throw py::key_error();
+        }
+        m.erase(it);
+    });
+
+    cl.def("__len__", [](const Map &m) { return m.size(); });
+
+    return cl;
+}
+
 template <typename Map, typename holder_type = std::unique_ptr<Map>, typename... Args>
 py::class_<Map, holder_type> BindMap(py::handle scope, const std::string& name, Args&&... args) {
   using Key = typename Map::key_type;
   using Value = typename Map::mapped_type;
-  auto cl = py::bind_map<Map, holder_type>(scope, name, std::forward<Args>(args)...)
+  auto cl = OeadBindMap<Map, holder_type>(scope, name, std::forward<Args>(args)...)
                 .def(py::init([&](py::iterator it) {
                        return MapFromIter<Map, Key>(it, MapCastValue<Map, Key, Value>);
                      }),
@@ -162,7 +280,7 @@ py::class_<Map, holder_type> BindMap(py::handle scope, const std::string& name, 
                           return *default_value;
                         throw py::key_error();
                       }
-                      return it->second;
+                      return GetIteratorValue(it);
                     },
                     "key"_a, "default"_a = std::nullopt, py::keep_alive<0, 1>());
   py::implicitly_convertible<py::dict, Map>();
