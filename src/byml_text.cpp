@@ -194,74 +194,105 @@ std::string Byml::ToText() const {
   emitter.Emit(event);
 
   const auto emit = [&](auto self, const Byml& node) -> void {
-    util::Match(
-        node.GetVariant().v, [&](Null) { emitter.EmitNull(); },
-        [&](const String& v) { emitter.EmitString(v); },
-        [&](const std::vector<u8>& v) {
-          const std::string encoded = absl::Base64Escape(
-              absl::string_view(reinterpret_cast<const char*>(v.data()), v.size()));
-          emitter.EmitString(encoded, "tag:yaml.org,2002:binary");
-        },
-        [&](const BinaryWithAlignment& v) {
-          yml::LibyamlEmitter::MappingScope scope{emitter, "!binary_aligned",
-                                                  YAML_BLOCK_MAPPING_STYLE};
-          const std::string encoded = absl::Base64Escape(
-              absl::string_view(reinterpret_cast<const char*>(v.data.data()), v.data.size()));
-          emitter.EmitString("Alignment");
-          emitter.EmitScalar(absl::StrFormat("0x%08x", v.align), false, false, "!u");
-          emitter.EmitString("Data");
-          emitter.EmitString(encoded, "tag:yaml.org,2002:binary");
-        },
-        [&](const Array& v) {
-          yaml_event_t event;
-          const auto style = byml::ShouldUseInlineYamlStyle(v) ? YAML_FLOW_SEQUENCE_STYLE :
-                                                                 YAML_BLOCK_SEQUENCE_STYLE;
-          yaml_sequence_start_event_initialize(&event, nullptr, nullptr, 1, style);
-          emitter.Emit(event);
+    switch (node.GetType()) {
+    case Byml::Type::Null:
+      emitter.EmitNull();
+      break;
+    case Byml::Type::String:
+      emitter.EmitString(node.GetString());
+      break;
+    case Byml::Type::Binary: {
+      const auto& v = node.GetBinary();
+      const std::string encoded = absl::Base64Escape(
+          absl::string_view(reinterpret_cast<const char*>(v.data()), v.size()));
+      emitter.EmitString(encoded, "tag:yaml.org,2002:binary");
+      break;
+    }
+    case Byml::Type::BinaryWithAlignment: {
+      const auto& v = node.GetBinaryWithAlignment();
+      yml::LibyamlEmitter::MappingScope scope{emitter, "!binary_aligned",
+                                              YAML_BLOCK_MAPPING_STYLE};
+      const std::string encoded = absl::Base64Escape(
+          absl::string_view(reinterpret_cast<const char*>(v.data.data()), v.data.size()));
+      emitter.EmitString("Alignment");
+      emitter.EmitScalar(absl::StrFormat("0x%08x", v.align), false, false, "!u");
+      emitter.EmitString("Data");
+      emitter.EmitString(encoded, "tag:yaml.org,2002:binary");
+      break;
+    }
+    case Byml::Type::Array: {
+      const auto& v = node.GetArray();
+      yaml_event_t event;
+      const auto style = byml::ShouldUseInlineYamlStyle(node) ? YAML_FLOW_SEQUENCE_STYLE :
+                                                                YAML_BLOCK_SEQUENCE_STYLE;
+      yaml_sequence_start_event_initialize(&event, nullptr, nullptr, 1, style);
+      emitter.Emit(event);
 
-          for (const Byml& item : v)
-            self(self, item);
+      for (const Byml& item : v)
+        self(self, item);
 
-          yaml_sequence_end_event_initialize(&event);
-          emitter.Emit(event);
-        },
-        [&](const Dictionary& v) {
-          const auto style = byml::ShouldUseInlineYamlStyle(v) ? YAML_FLOW_MAPPING_STYLE :
-                                                                 YAML_BLOCK_MAPPING_STYLE;
-          yml::LibyamlEmitter::MappingScope scope{emitter, {}, style};
+      yaml_sequence_end_event_initialize(&event);
+      emitter.Emit(event);
+      break;
+    }
+    case Byml::Type::Dictionary: {
+      const auto& v = node.GetDictionary();
+      const auto style = byml::ShouldUseInlineYamlStyle(node) ? YAML_FLOW_MAPPING_STYLE :
+                                                                YAML_BLOCK_MAPPING_STYLE;
+      yml::LibyamlEmitter::MappingScope scope{emitter, {}, style};
 
-          for (const auto& [k, v] : v) {
-            emitter.EmitString(k);
-            self(self, v);
-          }
-        },
-        [&](const Hash32& v) {
-          const auto style = byml::ShouldUseInlineYamlStyle(v) ? YAML_FLOW_MAPPING_STYLE :
-                                                                 YAML_BLOCK_MAPPING_STYLE;
-          yml::LibyamlEmitter::MappingScope scope{emitter, "!h32", style};
+      for (const auto& [k, val] : v) {
+        emitter.EmitString(k);
+        self(self, val);
+      }
+      break;
+    }
+    case Byml::Type::Hash32: {
+      const auto& v = node.GetHash32();
+      const auto style = byml::ShouldUseInlineYamlStyle(node) ? YAML_FLOW_MAPPING_STYLE :
+                                                                YAML_BLOCK_MAPPING_STYLE;
+      yml::LibyamlEmitter::MappingScope scope{emitter, "!h32", style};
 
-          for (const auto& [k, v] : v) {
-            emitter.EmitString(absl::StrFormat("0x%08x", k));
-            self(self, v);
-          }
-        },
-        [&](const Hash64& v) {
-          const auto style = byml::ShouldUseInlineYamlStyle(v) ? YAML_FLOW_MAPPING_STYLE :
-                                                                 YAML_BLOCK_MAPPING_STYLE;
-          yml::LibyamlEmitter::MappingScope scope{emitter, "!h64", style};
+      for (const auto& [k, val] : v) {
+        emitter.EmitString(absl::StrFormat("0x%08x", k));
+        self(self, val);
+      }
+      break;
+    }
+    case Byml::Type::Hash64: {
+      const auto& v = node.GetHash64();
+      const auto style = byml::ShouldUseInlineYamlStyle(node) ? YAML_FLOW_MAPPING_STYLE :
+                                                                YAML_BLOCK_MAPPING_STYLE;
+      yml::LibyamlEmitter::MappingScope scope{emitter, "!h64", style};
 
-          for (const auto& [k, v] : v) {
-            emitter.EmitString(absl::StrFormat("0x%016x", k));
-            self(self, v);
-          }
-        },
-        [&](bool v) { emitter.EmitBool(v); },  //
-        [&](S32 v) { emitter.EmitInt(v); },    //
-        [&](F32 v) { emitter.EmitFloat(v); },  //
-        [&](U32 v) { emitter.EmitScalar(absl::StrFormat("0x%08x", v), false, false, "!u"); },
-        [&](S64 v) { emitter.EmitInt(v, "!l"); },   //
-        [&](U64 v) { emitter.EmitInt(v, "!ul"); },  //
-        [&](F64 v) { emitter.EmitDouble(v, "!f64"); });
+      for (const auto& [k, val] : v) {
+        emitter.EmitString(absl::StrFormat("0x%016x", k));
+        self(self, val);
+      }
+      break;
+    }
+    case Byml::Type::Bool:
+      emitter.EmitBool(node.GetBool());
+      break;
+    case Byml::Type::Int:
+      emitter.EmitInt(node.GetInt());
+      break;
+    case Byml::Type::Float:
+      emitter.EmitFloat(node.GetFloat());
+      break;
+    case Byml::Type::UInt:
+      emitter.EmitScalar(absl::StrFormat("0x%08x", node.GetUInt()), false, false, "!u");
+      break;
+    case Byml::Type::Int64:
+      emitter.EmitInt(node.GetInt64(), "!l");
+      break;
+    case Byml::Type::UInt64:
+      emitter.EmitInt(node.GetUInt64(), "!ul");
+      break;
+    case Byml::Type::Double:
+      emitter.EmitDouble(node.GetDouble(), "!f64");
+      break;
+    }
   };
   emit(emit, *this);
 
