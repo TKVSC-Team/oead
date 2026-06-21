@@ -79,10 +79,17 @@ public:
                               std::unique_ptr<BinaryWithAlignment>, std::unique_ptr<Array>,
                               std::unique_ptr<Dictionary>, bool, S32, F32, U32, S64, U64, F64>;
 
+  template <typename T, typename = void>
+  struct is_byml_constructible : std::false_type {};
+
+  template <typename T>
+  struct is_byml_constructible<T, std::enable_if_t<!std::is_same_v<std::decay_t<T>, Byml>>>
+      : std::is_constructible<Value, T&&> {};
+
   Byml() = default;
   Byml(const Byml& other);
   Byml(Byml&& other) noexcept;
-  template <typename T, std::enable_if_t<std::is_constructible_v<Value, T&&>>* = nullptr>
+  template <typename T, std::enable_if_t<is_byml_constructible<T>::value>* = nullptr>
   Byml(T&& value) : m_value{std::forward<T>(value)} {}
   Byml& operator=(const Byml& other);
   Byml& operator=(Byml&& other) noexcept;
