@@ -78,9 +78,9 @@ struct oead_variant_caster<V<Ts...>> {
     auto caster = make_caster<T>();
     if (caster.load(src, convert)) {
       if constexpr (ptr) {
-        this->value = std::make_unique<T>(cast_op<T>(std::move(caster)));
+        this->value = std::make_unique<T>(cast_op<T&&>(std::move(caster)));
       } else {
-        this->value = cast_op<T>(std::move(caster));
+        this->value = cast_op<T&&>(std::move(caster));
       }
       return true;
     }
