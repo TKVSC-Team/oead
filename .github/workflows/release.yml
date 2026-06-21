@@ -33,7 +33,7 @@ jobs:
     env:
       MACOSX_DEPLOYMENT_TARGET: "10.14"
       CIBW_ARCHS: auto64
-      CIBW_SKIP: cp36-* cp37-* cp38-macosx_arm64
+      CIBW_BUILD: "cp313-* cp314-*"
 
     steps:
       - uses: actions/checkout@v4
