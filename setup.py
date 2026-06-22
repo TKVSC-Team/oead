@@ -90,11 +90,11 @@ cmdclass = versioneer.get_cmdclass()
 cmdclass["build_ext"] = CMakeBuild
 
 setuptools.setup(
-    name="oead",
+    name="tkvsc-oead",
     version=versioneer.get_version(),
     cmdclass=cmdclass,
-    author="leoetlino",
-    author_email="leo@leolam.fr",
+    author="TKVSC Team",
+    author_email="tkvsc.team@gmail.com",
     description="Library for recent Nintendo EAD formats in first-party games",
     long_description=long_description,
     long_description_content_type="text/x-rst",
