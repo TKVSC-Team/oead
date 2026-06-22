@@ -41,10 +41,25 @@ class CMakeBuild(build_ext):
 
         generator = os.getenv('CMAKE_GENERATOR', '')
         if not generator and platform.system() == "Windows":
+            default_gen = ''
+            try:
+                out = subprocess.check_output(['cmake', '--help']).decode('utf-8', errors='ignore')
+                for line in out.splitlines():
+                    line = line.strip()
+                    if line.startswith('*'):
+                        default_gen = line.split('=')[0].replace('*', '').strip()
+                        break
+            except Exception:
+                pass
+
             import shutil
             if shutil.which("ninja") is not None:
-                os.environ["CMAKE_GENERATOR"] = "Ninja"
-                generator = "Ninja"
+                if not default_gen or "Visual Studio" not in default_gen:
+                    os.environ["CMAKE_GENERATOR"] = "Ninja"
+                    generator = "Ninja"
+
+            if not generator:
+                generator = default_gen
 
         is_multi_config = platform.system() == "Windows" and not any(x in generator for x in ["Ninja", "MinGW", "NMake", "Makefiles"])
 
