@@ -1,6 +1,6 @@
-======
- tkvsc-oead
-======
+==========
+tkvsc-oead
+==========
 
 **tkvsc-oead** is a C++ library for common file formats that are used in modern first-party Nintendo EAD (now EPD) titles. Forked from the original **oead** library by leoetlino, it is now maintained by the TKVSC Team.
 Changes made in [DT's PR](https://github.com/zeldamods/oead/pull/36) were also included
