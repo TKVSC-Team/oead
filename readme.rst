@@ -38,7 +38,7 @@ This will download and install a precompiled version of tkvsc-oead for the follo
 
 The following versions of Python are supported:
 
-* CPython 3.8 to 3.14
+* CPython 3.9 to 3.14
 * PyPy3.7 to 3.9
 
 If you are using any other platform, you must build tkvsc-oead from source (refer to the next section).
