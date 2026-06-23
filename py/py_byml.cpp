@@ -43,6 +43,13 @@ struct type_caster<oead::Byml> {
 
   template <typename T_>
   static handle cast(T_&& src, return_value_policy policy, handle parent) {
+    if (policy == return_value_policy::reference ||
+        policy == return_value_policy::reference_internal) {
+      // Borrowed Byml nodes (e.g. dictionary values) must be copied before casting.
+      // Returning references breaks opaque container holders and scalar wrappers.
+      const oead::Byml copy(std::forward<T_>(src));
+      return value_conv::cast(copy.GetVariant(), return_value_policy::move, parent);
+    }
     return value_conv::cast(src.GetVariant(), policy, parent);
   }
 

@@ -56,6 +56,12 @@ struct oead_caster_visitor {
       return make_caster<U>::cast(src, policy, parent);
     } else {
       using T = typename std::decay_t<U>::element_type;
+      // Opaque bind_vector/bind_map types use std::unique_ptr holders. Returning a
+      // reference to storage owned by a parent Byml produces empty/broken Python views.
+      if (policy == return_value_policy::reference ||
+          policy == return_value_policy::reference_internal) {
+        return make_caster<T>::cast(T(*src), return_value_policy::move, parent);
+      }
       return make_caster<T>::cast(*src, policy, parent);
     }
   }

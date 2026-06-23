@@ -67,7 +67,7 @@ enum class NodeType : u8 {
   PathTable = 0xc3,           // Unsupported
   RemappedDictionary = 0xc4,  // Unsupported
   RelocatedStringTable = 0xc5,
-  MonoTypedArray = 0xc8,  // Unsupported
+  MonoTypedArray = 0xc8,
   Bool = 0xd0,
   Int = 0xd1,
   Float = 0xd2,
@@ -91,7 +91,12 @@ constexpr NodeType GetNodeType(Byml::Type type) {
 
 template <typename T = NodeType>
 constexpr bool IsContainerType(T type) {
-  return type == T::Array || type == T::Dictionary || type == T::Hash32 || type == T::Hash64;
+  if constexpr (std::is_same_v<T, NodeType>) {
+    return type == T::Array || type == T::Dictionary || type == T::Hash32 || type == T::Hash64 ||
+           type == T::MonoTypedArray;
+  } else {
+    return type == T::Array || type == T::Dictionary || type == T::Hash32 || type == T::Hash64;
+  }
 }
 
 template <typename T = NodeType>
@@ -283,6 +288,19 @@ private:
     return Byml{std::move(result)};
   }
 
+  Byml ParseMonoTypedArrayNode(u32 offset, u32 size) {
+    const auto element_type = m_reader.Read<NodeType>(offset + 4);
+    if (!element_type)
+      throw InvalidDataError("Invalid monotyped array node");
+    Byml::Array result;
+    result.reserve(size);
+    const u32 values_offset = util::AlignUp(offset + 5, 4);
+    for (u32 i = 0; i < size; ++i) {
+      result.emplace_back(ParseContainerChildNode(values_offset + 4 * i, *element_type));
+    }
+    return Byml{std::move(result)};
+  }
+
   Byml ParseDictionaryNode(u32 offset, u32 size) {
     Byml::Dictionary result;
     for (u32 i = 0; i < size; ++i) {
@@ -304,6 +322,8 @@ private:
     switch (*type) {
     case NodeType::Array:
       return ParseArrayNode(offset, *num_entries);
+    case NodeType::MonoTypedArray:
+      return ParseMonoTypedArrayNode(offset, *num_entries);
     case NodeType::Dictionary:
       return ParseDictionaryNode(offset, *num_entries);
     case NodeType::Hash32:

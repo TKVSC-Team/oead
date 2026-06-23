@@ -1,22 +1,25 @@
 ======
- oead
+ tkvsc-oead
 ======
 
-**oead** is a C++ library for common file formats that are used in modern first-party Nintendo EAD (now EPD) titles.
+**tkvsc-oead** is a C++ library for common file formats that are used in modern first-party Nintendo EAD (now EPD) titles. Forked from the original **oead** library by leoetlino, it is now maintained by the TKVSC Team.
+Changes made in [DT's PR](https://github.com/zeldamods/oead/pull/36) were also included
 
-Python bindings for 3.8+ are also available.
+WARNING
+========
+This library should not be used in the same environment as the original oead library, as they have the same Python module name and will conflict with each other. If you want to use both libraries, it is recommended to use virtual environments to keep them separate.
 
 Features
 ========
 
-Currently, oead only handles very common formats that are extensively used in recent games such as *Breath of the Wild* and *Super Mario Odyssey*.
+Currently, tkvsc-oead only handles very common formats that are extensively used in recent games such as *Breath of the Wild* and *Super Mario Odyssey*.
 
 * `AAMP <https://zeldamods.org/wiki/AAMP>`_ (binary parameter archive): Only version 2 is supported.
-* `BYML <https://zeldamods.org/wiki/BYML>`_ (binary YAL): Versions 1-10 are supported (only 32-bit and 64-bit hash nodes), remapped container nodes, monotyped arrays, and non-container root nodes are not supported.
+* `BYML <https://zeldamods.org/wiki/BYML>`_ (binary YAL): Versions 1-10 are supported (32-bit and 64-bit hash nodes, monotyped arrays). Remapped container nodes and non-container root nodes are not supported.
 * `SARC <https://zeldamods.org/wiki/SARC>`_ (archive)
 * `Yaz0 <https://zeldamods.org/wiki/Yaz0>`_ (compression algorithm)
 
-oead also supports a recent Grezzo format that is used in *Link's Awakening (Switch)*:
+tkvsc-oead also supports a recent Grezzo format that is used in *Link's Awakening (Switch)*:
 
 * `gsheet <https://zeldamods.org/las/Datasheet>`_ (Grezzo datasheet)
 
@@ -25,9 +28,9 @@ Getting started
 
 To install the Python module, simply run:
 
-   pip install oead
+   pip install tkvsc-oead
 
-This will download and install a precompiled version of oead for the following platforms:
+This will download and install a precompiled version of tkvsc-oead for the following platforms:
 
 * Windows (x86-64 / 64-bit)
 * Recent Linux distributions (x86-64, glibc and musl)
@@ -38,7 +41,7 @@ The following versions of Python are supported:
 * CPython 3.8 to 3.14
 * PyPy3.7 to 3.9
 
-If you are using any other platform, you must build oead from source (refer to the next section).
+If you are using any other platform, you must build tkvsc-oead from source (refer to the next section).
 
 .. warning::
    Windows users must ensure that they have the `latest Visual C++ 2019 Redistributable <https://support.microsoft.com/en-us/help/2977003/the-latest-supported-visual-c-downloads>`_ installed.
